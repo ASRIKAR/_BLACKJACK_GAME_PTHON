@@ -1,0 +1,176 @@
+import random
+card_suits = ["CLUB", "DIAMOND", "HEART", "SPADE"]
+values = ["TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE",
+          "JACK", "QUEEN", "KING", "ACE"]
+ranks = {"TWO": 2, "THREE": 3, "FOUR": 4, "FIVE": 5, "SIX": 6,
+         "SEVEN": 7, "EIGHT": 8, "NINE": 9, "JACK": 10, "QUEEN": 10, "KING": 10, "ACE": 11}
+
+
+class Card:
+
+    def __init__(self, card_suit, card_value):
+        self.card_suit = card_suit.upper()
+        self.card_rank = ranks[card_value.upper()]
+        self.card_value = card_value
+
+    def __str__(self):
+        return f'{self.card_rank} of {self.card_suit}'
+
+
+class Deck:
+
+    def __init__(self):
+        self.all_cards = []
+        for card_suit in card_suits:
+            for value in values:
+                self.all_cards.append(Card(card_suit, value))
+        random.shuffle(self.all_cards)
+
+    def deal_one(self):
+        return self.all_cards.pop()
+
+    def __str__(self):
+        return f"Total Cards :{len(self.all_cards)}"
+
+
+class Player:
+    def __init__(self, player_name, account_money):
+        self.player_name = player_name
+        self.all_cards = []
+        self.account_money = account_money
+
+    def deposit(self,money):
+        if money > 0:
+            self.account_money += money
+        else:
+            return f'INVALID MONEY'
+
+    def withdraw(self, money):
+        if self.account_money - money < 0:
+            return f'MONEY INSUFFICIENT'
+        else:
+            self.account_money -= money
+
+    def hit(self):
+        return self.all_cards.pop()
+
+    def deal_last(self):
+        return self.all_cards[-1]
+
+    def add_card(self, new_card):
+        self.all_cards.append(new_card)
+
+    def __len__(self):
+        return len(self.all_cards)
+
+    def __str__(self):
+        return f"player has {len(self.all_cards)} cards"
+
+    def get_total_rank(self):
+        total_rank = 0
+        for card in self.all_cards:
+            total_rank += card.card_rank
+        return total_rank
+
+
+def player_game(player, computer, new_deck, bet):
+    player_sum = player.get_total_rank()
+    print(f"TOTAL SUM OF PLAYER CARDS  = {player_sum}")
+    while True:
+        if player_sum == 21:
+            print(f"{player.player_name} wins")
+            player.deposit(2*bet)
+            return
+        print(f"Computer's card: {computer.all_cards[1]}")
+        print("CHOSE:\n1:HIT\n2:STAND")
+        user_input = int(input())
+        if user_input == 2:
+            break
+        else:
+            player.add_card(new_deck.deal_one())
+            last_card_name = player.deal_last().card_value
+            # print(f"newly added card is {last_card_name}")
+            if last_card_name == "ACE" and player.get_total_rank() > 21:
+                player_sum = player.get_total_rank() - 10
+            elif last_card_name == "ACE":
+                player_sum = player.get_total_rank()
+            else:
+                player_sum = player.get_total_rank()
+            print(f"TOTAL SUM OF PLAYER CARDS  = {player_sum}")
+            if player_sum > 21:
+                computer.deposit(bet)
+                print("BUST! COMPUTER WINS")
+                return
+    return player_sum
+
+
+def computer_game(computer, player, new_deck, bet):
+    print(f"SUM OF COMPUTERS CARDS = {computer.get_total_rank()}")
+    computer_sum = computer.get_total_rank()
+    if computer_sum > 21:
+        player.deposit(2*bet)
+        print(f"BUST! {player.player_name} WINS")
+        return
+    if computer_sum == 21:
+        # computer.deposit(bet)
+        print("COMPUTER WINS")
+        return
+    while computer_sum < 17:
+        if computer_sum == 21:
+            # computer.deposit(bet)
+            print("COMPUTER WINS")
+            return
+        elif computer_sum > 21:
+            player.deposit(2*bet)
+            print(f"BUST! {player.player_name} WINS")
+            return
+        computer.add_card(new_deck.deal_one())
+        computer_sum = computer.get_total_rank()
+        print(f"SUM OF COMPUTERS CARDS = {computer.get_total_rank()}")
+    return computer_sum
+
+
+def game():
+    print("Enter Player Name: ")
+    player_name = input()
+    print("You should add base amount into your bank account(min of 1500) How much you will:")
+    money = int(input())
+    if money < 1500:
+        print('Base amount is not detected you are not qualified to play the game ')
+        return
+
+    while True:
+        player = Player(player_name, money)
+        new_deck = Deck()
+        print("How much you want to bet ?")
+        bet = int(input())
+        if bet < player.account_money:
+            player.withdraw(bet)
+            computer = Player("computer_bot", 0)
+
+            for _ in range(2):
+                player.add_card(new_deck.deal_one())
+                computer.add_card(new_deck.deal_one())
+            player_sum = player_game(player, computer, new_deck, bet)
+            if player_sum is not None:
+                computer_sum = computer_game(computer, player, new_deck, bet)
+            if player_sum is not None and computer_sum is not None:
+                if computer_sum < player_sum < 21:
+                    player.deposit(2*bet)
+                    print(f"{player.player_name} Wins!")
+                else:
+                    # computer.deposit(bet)
+                    print(f"Computer Wins! {player.player_name} lost")
+            print(f"\nYour Bank Balance : {player.account_money}")
+            print("DO YOU WANT TO PLAY AGAIN YES/NO")
+            play_again = input().upper()
+            if play_again == "YES":
+                continue
+            else:
+                break
+        else:
+            print("Insufficient money")
+            break
+
+
+game()
